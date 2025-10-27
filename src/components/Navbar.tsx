@@ -44,7 +44,7 @@ export const Navbar = () => {
     { path: "/games", label: "Game", icon: Gamepad2 },
     ...(user ? [
       { path: "/vault", label: "Vault", icon: Receipt },
-      { path: "/auth", label: "Profile", icon: User }
+      { path: "/profile", label: "Profile", icon: User }
     ] : []),
     { path: "/help", label: "Help", icon: HelpCircle },
   ];

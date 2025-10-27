@@ -10,6 +10,7 @@ import Games from "./pages/Games";
 import GameDetail from "./pages/GameDetail";
 import Vault from "./pages/Vault";
 import Help from "./pages/Help";
+import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
           <Route path="/game/:slug" element={<GameDetail />} />
           <Route path="/vault" element={<Vault />} />
           <Route path="/help" element={<Help />} />
+          <Route path="/profile" element={<Profile />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
