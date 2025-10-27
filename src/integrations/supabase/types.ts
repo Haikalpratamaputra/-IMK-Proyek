@@ -176,6 +176,74 @@ export type Database = {
           },
         ]
       }
+      user_vouchers: {
+        Row: {
+          created_at: string
+          id: string
+          is_used: boolean
+          used_at: string | null
+          user_id: string
+          voucher_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_used?: boolean
+          used_at?: string | null
+          user_id: string
+          voucher_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_used?: boolean
+          used_at?: string | null
+          user_id?: string
+          voucher_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_voucher"
+            columns: ["voucher_id"]
+            isOneToOne: false
+            referencedRelation: "vouchers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vouchers: {
+        Row: {
+          created_at: string
+          description: string | null
+          discount_percentage: number
+          id: string
+          is_active: boolean
+          name: string
+          points_required: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          discount_percentage: number
+          id?: string
+          is_active?: boolean
+          name: string
+          points_required: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          discount_percentage?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          points_required?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

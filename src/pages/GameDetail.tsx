@@ -6,8 +6,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, CreditCard, Wallet } from "lucide-react";
+import { Loader2, CreditCard, Wallet, Ticket } from "lucide-react";
 import { z } from "zod";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Game {
   id: string;
@@ -22,6 +23,17 @@ interface Product {
   name: string;
   price: number;
   currency_amount: number;
+}
+
+interface UserVoucher {
+  id: string;
+  voucher_id: string;
+  is_used: boolean;
+  vouchers: {
+    id: string;
+    name: string;
+    discount_percentage: number;
+  };
 }
 
 const transactionSchema = z.object({
@@ -40,6 +52,8 @@ export default function GameDetail() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
+  const [userVouchers, setUserVouchers] = useState<UserVoucher[]>([]);
+  const [selectedVoucher, setSelectedVoucher] = useState<string>("");
   
   const [formData, setFormData] = useState({
     userGameId: "",
@@ -48,6 +62,7 @@ export default function GameDetail() {
   });
   
   const [selectedPrice, setSelectedPrice] = useState(0);
+  const [originalPrice, setOriginalPrice] = useState(0);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -87,6 +102,19 @@ export default function GameDetail() {
         setProducts(productsData);
       }
 
+      // Get user's available vouchers
+      if (session?.user) {
+        const { data: voucherData } = await supabase
+          .from("user_vouchers")
+          .select("*, vouchers(*)")
+          .eq("user_id", session.user.id)
+          .eq("is_used", false);
+
+        if (voucherData) {
+          setUserVouchers(voucherData as any);
+        }
+      }
+
       setLoading(false);
     };
 
@@ -95,7 +123,28 @@ export default function GameDetail() {
 
   const handleProductSelect = (product: Product) => {
     setFormData({ ...formData, productId: product.id });
-    setSelectedPrice(product.price);
+    setOriginalPrice(product.price);
+    calculatePrice(product.price, selectedVoucher);
+  };
+
+  const calculatePrice = (basePrice: number, voucherId: string) => {
+    if (!voucherId) {
+      setSelectedPrice(basePrice);
+      return;
+    }
+
+    const voucher = userVouchers.find(v => v.id === voucherId);
+    if (voucher) {
+      const discount = basePrice * (voucher.vouchers.discount_percentage / 100);
+      setSelectedPrice(Math.round(basePrice - discount));
+    } else {
+      setSelectedPrice(basePrice);
+    }
+  };
+
+  const handleVoucherChange = (voucherId: string) => {
+    setSelectedVoucher(voucherId);
+    calculatePrice(originalPrice, voucherId);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -126,6 +175,14 @@ export default function GameDetail() {
       });
 
       if (error) throw error;
+
+      // Mark voucher as used if applied
+      if (selectedVoucher) {
+        await supabase
+          .from("user_vouchers")
+          .update({ is_used: true, used_at: new Date().toISOString() })
+          .eq("id", selectedVoucher);
+      }
 
       toast({
         title: "Transaksi Berhasil!",
@@ -240,12 +297,51 @@ export default function GameDetail() {
             </CardContent>
           </Card>
 
-          {/* Step 3: Payment Method */}
+          {/* Step 3: Voucher (Optional) */}
+          {userVouchers.length > 0 && formData.productId && (
+            <Card className="glass border-border">
+              <CardContent className="p-6 space-y-4">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">
+                    3
+                  </div>
+                  <h2 className="text-xl font-bold">Gunakan Voucher (Opsional)</h2>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="voucher">Pilih Voucher</Label>
+                  <Select value={selectedVoucher} onValueChange={handleVoucherChange}>
+                    <SelectTrigger className="bg-card border-border">
+                      <SelectValue placeholder="Pilih voucher (opsional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Tidak pakai voucher</SelectItem>
+                      {userVouchers.map((uv) => (
+                        <SelectItem key={uv.id} value={uv.id}>
+                          <div className="flex items-center gap-2">
+                            <Ticket className="w-4 h-4" />
+                            {uv.vouchers.name} - {uv.vouchers.discount_percentage}% OFF
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {selectedVoucher && (
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-primary/10 border border-primary">
+                      <span className="text-sm">Harga Asli:</span>
+                      <span className="text-sm line-through">Rp {originalPrice.toLocaleString("id-ID")}</span>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Step 4: Payment Method */}
           <Card className="glass border-border">
             <CardContent className="p-6 space-y-4">
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">
-                  3
+                  {userVouchers.length > 0 && formData.productId ? "4" : "3"}
                 </div>
                 <h2 className="text-xl font-bold">Pilih Pembayaran</h2>
               </div>
