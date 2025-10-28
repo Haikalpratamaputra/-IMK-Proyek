@@ -298,7 +298,7 @@ export default function GameDetail() {
           </Card>
 
           {/* Step 3: Voucher (Optional) */}
-          {userVouchers.length > 0 && formData.productId && (
+          {formData.productId && (
             <Card className="glass border-border">
               <CardContent className="p-6 space-y-4">
                 <div className="flex items-center gap-2 mb-4">
@@ -307,31 +307,51 @@ export default function GameDetail() {
                   </div>
                   <h2 className="text-xl font-bold">Gunakan Voucher (Opsional)</h2>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="voucher">Pilih Voucher</Label>
-                  <Select value={selectedVoucher} onValueChange={handleVoucherChange}>
-                    <SelectTrigger className="bg-card border-border">
-                      <SelectValue placeholder="Pilih voucher (opsional)" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">Tidak pakai voucher</SelectItem>
-                      {userVouchers.map((uv) => (
-                        <SelectItem key={uv.id} value={uv.id}>
-                          <div className="flex items-center gap-2">
-                            <Ticket className="w-4 h-4" />
-                            {uv.vouchers.name} - {uv.vouchers.discount_percentage}% OFF
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {selectedVoucher && (
-                    <div className="flex items-center justify-between p-3 rounded-lg bg-primary/10 border border-primary">
-                      <span className="text-sm">Harga Asli:</span>
-                      <span className="text-sm line-through">Rp {originalPrice.toLocaleString("id-ID")}</span>
-                    </div>
-                  )}
-                </div>
+                
+                {userVouchers.length > 0 ? (
+                  <div className="space-y-3">
+                    <Label htmlFor="voucher">Pilih Voucher</Label>
+                    <Select value={selectedVoucher} onValueChange={handleVoucherChange}>
+                      <SelectTrigger className="bg-card border-border">
+                        <SelectValue placeholder="Pilih voucher untuk diskon" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">Tidak pakai voucher</SelectItem>
+                        {userVouchers.map((uv) => (
+                          <SelectItem key={uv.id} value={uv.id}>
+                            <div className="flex items-center gap-2">
+                              <Ticket className="w-4 h-4" />
+                              {uv.vouchers.name} - {uv.vouchers.discount_percentage}% OFF
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    
+                    {selectedVoucher && (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between p-3 rounded-lg bg-primary/10 border border-primary">
+                          <span className="text-sm">Harga Asli:</span>
+                          <span className="text-sm line-through">Rp {originalPrice.toLocaleString("id-ID")}</span>
+                        </div>
+                        <div className="flex items-center justify-between p-3 rounded-lg bg-success/10 border border-success">
+                          <span className="text-sm font-semibold">Hemat:</span>
+                          <span className="text-sm font-semibold text-success">Rp {(originalPrice - selectedPrice).toLocaleString("id-ID")}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="p-4 rounded-lg bg-muted/50 border border-border text-center space-y-2">
+                    <Ticket className="w-8 h-8 mx-auto text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">
+                      Anda belum memiliki voucher.
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Kumpulkan poin loyalty dan tukar dengan voucher di halaman Vault!
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
