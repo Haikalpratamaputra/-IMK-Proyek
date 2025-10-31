@@ -128,7 +128,7 @@ export default function GameDetail() {
   };
 
   const calculatePrice = (basePrice: number, voucherId: string) => {
-    if (!voucherId) {
+    if (!voucherId || voucherId === "none") {
       setSelectedPrice(basePrice);
       return;
     }
@@ -177,7 +177,7 @@ export default function GameDetail() {
       if (error) throw error;
 
       // Mark voucher as used if applied
-      if (selectedVoucher) {
+      if (selectedVoucher && selectedVoucher !== "none") {
         await supabase
           .from("user_vouchers")
           .update({ is_used: true, used_at: new Date().toISOString() })
@@ -316,7 +316,7 @@ export default function GameDetail() {
                         <SelectValue placeholder="Pilih voucher untuk diskon" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Tidak pakai voucher</SelectItem>
+                        <SelectItem value="none">Tidak pakai voucher</SelectItem>
                         {userVouchers.map((uv) => (
                           <SelectItem key={uv.id} value={uv.id}>
                             <div className="flex items-center gap-2">
