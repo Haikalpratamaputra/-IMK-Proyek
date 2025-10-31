@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Home, Gamepad2, Receipt, HelpCircle, User, LogOut } from "lucide-react";
+import { Home, Gamepad2, Receipt, HelpCircle, User, LogOut, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
@@ -8,6 +8,37 @@ import { useToast } from "@/hooks/use-toast";
 
 export const Navbar = () => {
   const location = useLocation();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    checkAdminStatus();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      checkAdminStatus();
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const checkAdminStatus = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setIsAdmin(false);
+        return;
+      }
+
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", session.user.id)
+        .eq("role", "admin")
+        .maybeSingle();
+
+      setIsAdmin(!!roleData);
+    } catch (error) {
+      console.error("Error checking admin status:", error);
+      setIsAdmin(false);
+    }
+  };
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const { toast } = useToast();
 
@@ -45,6 +76,9 @@ export const Navbar = () => {
     ...(user ? [
       { path: "/vault", label: "Vault", icon: Receipt },
       { path: "/profile", label: "Profile", icon: User }
+    ] : []),
+    ...(isAdmin ? [
+      { path: "/admin", label: "Admin", icon: Shield }
     ] : []),
     { path: "/help", label: "Help", icon: HelpCircle },
   ];
