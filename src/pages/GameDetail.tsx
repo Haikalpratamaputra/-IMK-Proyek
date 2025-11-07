@@ -444,16 +444,72 @@ export default function GameDetail() {
                   Total: Rp {selectedPrice.toLocaleString("id-ID")}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  Pembayaran akan diproses otomatis setelah scan berhasil
+                  Scan QR code, lalu klik tombol konfirmasi setelah pembayaran berhasil
                 </p>
               </div>
-              <Button
-                onClick={() => setShowQRDialog(false)}
-                variant="outline"
-                className="w-full"
-              >
-                Tutup
-              </Button>
+              <div className="flex flex-col w-full gap-2">
+                <Button
+                  onClick={async () => {
+                    setProcessing(true);
+                    try {
+                      const { error } = await supabase.from("transactions").insert({
+                        user_id: user.id,
+                        game_id: game!.id,
+                        product_id: formData.productId,
+                        user_game_id: formData.userGameId,
+                        payment_method: "qris",
+                        total_price: selectedPrice,
+                        status: "success",
+                      });
+
+                      if (error) throw error;
+
+                      // Mark voucher as used if applied
+                      if (selectedVoucher && selectedVoucher !== "none") {
+                        await supabase
+                          .from("user_vouchers")
+                          .update({ is_used: true, used_at: new Date().toISOString() })
+                          .eq("id", selectedVoucher);
+                      }
+
+                      toast({
+                        title: "Pembayaran Berhasil!",
+                        description: `Top-up berhasil! Poin loyalty telah ditambahkan ke Vault Anda.`,
+                      });
+
+                      setShowQRDialog(false);
+                      navigate("/vault");
+                    } catch (error) {
+                      toast({
+                        title: "Error",
+                        description: "Terjadi kesalahan. Silakan coba lagi.",
+                        variant: "destructive",
+                      });
+                    } finally {
+                      setProcessing(false);
+                    }
+                  }}
+                  disabled={processing}
+                  className="w-full"
+                >
+                  {processing ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Memproses...
+                    </>
+                  ) : (
+                    "Konfirmasi Pembayaran"
+                  )}
+                </Button>
+                <Button
+                  onClick={() => setShowQRDialog(false)}
+                  variant="outline"
+                  className="w-full"
+                  disabled={processing}
+                >
+                  Batal
+                </Button>
+              </div>
             </div>
           </DialogContent>
         </Dialog>
