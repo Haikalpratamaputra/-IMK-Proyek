@@ -6,8 +6,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, CreditCard, Wallet, Ticket } from "lucide-react";
+import { Loader2, CreditCard, Wallet, Ticket, QrCode } from "lucide-react";
 import { z } from "zod";
+import { QRCodeSVG } from "qrcode.react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Game {
@@ -54,6 +56,7 @@ export default function GameDetail() {
   const [processing, setProcessing] = useState(false);
   const [userVouchers, setUserVouchers] = useState<UserVoucher[]>([]);
   const [selectedVoucher, setSelectedVoucher] = useState<string>("");
+  const [showQRDialog, setShowQRDialog] = useState(false);
   
   const [formData, setFormData] = useState({
     userGameId: "",
@@ -162,6 +165,13 @@ export default function GameDetail() {
 
     try {
       const validated = transactionSchema.parse(formData);
+      
+      // Show QR dialog for QRIS payment
+      if (validated.paymentMethod === "qris") {
+        setShowQRDialog(true);
+        return;
+      }
+      
       setProcessing(true);
 
       const { error } = await supabase.from("transactions").insert({
@@ -210,6 +220,7 @@ export default function GameDetail() {
   };
 
   const paymentMethods = [
+    { id: "qris", name: "QRIS", icon: QrCode },
     { id: "gopay", name: "GoPay", icon: Wallet },
     { id: "ovo", name: "OVO", icon: Wallet },
     { id: "dana", name: "DANA", icon: Wallet },
@@ -397,6 +408,11 @@ export default function GameDetail() {
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                 Memproses...
               </>
+            ) : formData.paymentMethod === "qris" ? (
+              <>
+                <QrCode className="mr-2 h-5 w-5" />
+                Tampilkan QR Code - Rp {selectedPrice.toLocaleString("id-ID")}
+              </>
             ) : (
               <>
                 Beli Sekarang - Rp {selectedPrice.toLocaleString("id-ID")}
@@ -404,6 +420,43 @@ export default function GameDetail() {
             )}
           </Button>
         </form>
+
+        {/* QR Code Dialog */}
+        <Dialog open={showQRDialog} onOpenChange={setShowQRDialog}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Scan QR Code untuk Pembayaran</DialogTitle>
+              <DialogDescription>
+                Scan kode QR ini menggunakan aplikasi pembayaran Anda
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-col items-center justify-center space-y-4 p-6">
+              <div className="bg-white p-4 rounded-lg">
+                <QRCodeSVG
+                  value={`PAYMENT:${game?.id}:${formData.productId}:${selectedPrice}`}
+                  size={256}
+                  level="H"
+                  includeMargin={true}
+                />
+              </div>
+              <div className="text-center space-y-2">
+                <p className="text-lg font-bold">
+                  Total: Rp {selectedPrice.toLocaleString("id-ID")}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Pembayaran akan diproses otomatis setelah scan berhasil
+                </p>
+              </div>
+              <Button
+                onClick={() => setShowQRDialog(false)}
+                variant="outline"
+                className="w-full"
+              >
+                Tutup
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
