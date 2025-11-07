@@ -5,7 +5,47 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Coins, TrendingUp, Gift, Ticket } from "lucide-react";
+import { Loader2, Coins, TrendingUp, Gift, Ticket, CheckCircle, Clock, AlertCircle, XCircle } from "lucide-react";
+
+const getStatusConfig = (status: string) => {
+  switch (status) {
+    case "success":
+      return {
+        variant: "default" as const,
+        icon: CheckCircle,
+        label: "Berhasil",
+        className: "bg-green-600 text-white"
+      };
+    case "pending":
+      return {
+        variant: "outline" as const,
+        icon: Clock,
+        label: "Menunggu",
+        className: "text-yellow-600 border-yellow-600"
+      };
+    case "processing":
+      return {
+        variant: "outline" as const,
+        icon: Loader2,
+        label: "Diproses",
+        className: "text-blue-600 border-blue-600"
+      };
+    case "failed":
+      return {
+        variant: "destructive" as const,
+        icon: XCircle,
+        label: "Gagal",
+        className: "bg-red-600 text-white"
+      };
+    default:
+      return {
+        variant: "secondary" as const,
+        icon: AlertCircle,
+        label: status,
+        className: ""
+      };
+  }
+};
 
 interface Transaction {
   id: string;
@@ -302,22 +342,41 @@ export default function Vault() {
               <p className="text-center text-muted-foreground py-8">Belum ada transaksi</p>
             ) : (
               <div className="space-y-3">
-                {transactions.map((tx) => (
-                  <div key={tx.id} className="flex items-center justify-between p-4 rounded-lg bg-card border border-border">
-                    <div className="flex-1">
-                      <h3 className="font-semibold">{tx.games.name}</h3>
-                      <p className="text-sm text-muted-foreground">{tx.products.name}</p>
-                      <p className="text-xs text-muted-foreground">{new Date(tx.created_at).toLocaleDateString("id-ID")}</p>
+                {transactions.map((tx) => {
+                  const statusConfig = getStatusConfig(tx.status);
+                  const StatusIcon = statusConfig.icon;
+                  
+                  return (
+                    <div key={tx.id} className="flex items-center justify-between p-4 rounded-lg bg-card border border-border">
+                      <div className="flex-1">
+                        <h3 className="font-semibold">{tx.games.name}</h3>
+                        <p className="text-sm text-muted-foreground">{tx.products.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(tx.created_at).toLocaleDateString("id-ID", {
+                            day: "numeric",
+                            month: "long",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit"
+                          })}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Metode: {tx.payment_method.toUpperCase()}
+                        </p>
+                      </div>
+                      <div className="text-right space-y-2">
+                        <div className="font-semibold">Rp {tx.total_price.toLocaleString("id-ID")}</div>
+                        <Badge variant={statusConfig.variant} className={statusConfig.className}>
+                          <StatusIcon className={`w-3 h-3 mr-1 ${statusConfig.icon === Loader2 ? "animate-spin" : ""}`} />
+                          {statusConfig.label}
+                        </Badge>
+                        {tx.status === "success" && (
+                          <p className="text-xs text-primary">+{tx.points_earned} poin</p>
+                        )}
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <div className="font-semibold">Rp {tx.total_price.toLocaleString("id-ID")}</div>
-                      <Badge variant={tx.status === "success" ? "default" : "destructive"} className="mt-1">
-                        {tx.status}
-                      </Badge>
-                      <p className="text-xs text-primary mt-1">+{tx.points_earned} poin</p>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </CardContent>

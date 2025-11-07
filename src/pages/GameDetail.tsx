@@ -10,6 +10,7 @@ import { Loader2, CreditCard, Wallet, Ticket, QrCode } from "lucide-react";
 import { z } from "zod";
 import { QRCodeSVG } from "qrcode.react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Game {
@@ -57,6 +58,7 @@ export default function GameDetail() {
   const [userVouchers, setUserVouchers] = useState<UserVoucher[]>([]);
   const [selectedVoucher, setSelectedVoucher] = useState<string>("");
   const [showQRDialog, setShowQRDialog] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState<"idle" | "pending" | "processing" | "success" | "failed">("idle");
   
   const [formData, setFormData] = useState({
     userGameId: "",
@@ -168,11 +170,13 @@ export default function GameDetail() {
       
       // Show QR dialog for QRIS payment
       if (validated.paymentMethod === "qris") {
+        setPaymentStatus("pending");
         setShowQRDialog(true);
         return;
       }
       
       setProcessing(true);
+      setPaymentStatus("processing");
 
       const { error } = await supabase.from("transactions").insert({
         user_id: user.id,
@@ -181,10 +185,11 @@ export default function GameDetail() {
         user_game_id: validated.userGameId,
         payment_method: validated.paymentMethod,
         total_price: selectedPrice,
-        status: "success", // Simulasi sukses
+        status: "success",
       });
 
       if (error) throw error;
+      setPaymentStatus("success");
 
       // Mark voucher as used if applied
       if (selectedVoucher && selectedVoucher !== "none") {
@@ -201,6 +206,7 @@ export default function GameDetail() {
 
       navigate("/vault");
     } catch (error) {
+      setPaymentStatus("failed");
       if (error instanceof z.ZodError) {
         toast({
           title: "Validasi Gagal",
@@ -210,7 +216,7 @@ export default function GameDetail() {
       } else {
         toast({
           title: "Error",
-          description: "Terjadi kesalahan. Silakan coba lagi.",
+          description: "Pembayaran gagal. Silakan coba lagi.",
           variant: "destructive",
         });
       }
@@ -431,84 +437,172 @@ export default function GameDetail() {
               </DialogDescription>
             </DialogHeader>
             <div className="flex flex-col items-center justify-center space-y-4 p-6">
-              <div className="bg-white p-4 rounded-lg">
-                <QRCodeSVG
-                  value={`PAYMENT:${game?.id}:${formData.productId}:${selectedPrice}`}
-                  size={256}
-                  level="H"
-                  includeMargin={true}
-                />
-              </div>
-              <div className="text-center space-y-2">
-                <p className="text-lg font-bold">
-                  Total: Rp {selectedPrice.toLocaleString("id-ID")}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Scan QR code, lalu klik tombol konfirmasi setelah pembayaran berhasil
-                </p>
-              </div>
+              {paymentStatus === "pending" && (
+                <>
+                  <div className="bg-white p-4 rounded-lg">
+                    <QRCodeSVG
+                      value={`PAYMENT:${game?.id}:${formData.productId}:${selectedPrice}`}
+                      size={256}
+                      level="H"
+                      includeMargin={true}
+                    />
+                  </div>
+                  <div className="text-center space-y-2">
+                    <p className="text-lg font-bold">
+                      Total: Rp {selectedPrice.toLocaleString("id-ID")}
+                    </p>
+                    <Badge variant="outline" className="text-yellow-600 border-yellow-600">
+                      Menunggu Pembayaran
+                    </Badge>
+                    <p className="text-sm text-muted-foreground">
+                      Scan QR code, lalu klik tombol konfirmasi setelah pembayaran berhasil
+                    </p>
+                  </div>
+                </>
+              )}
+
+              {paymentStatus === "processing" && (
+                <div className="text-center space-y-4">
+                  <Loader2 className="w-16 h-16 animate-spin text-primary mx-auto" />
+                  <div className="space-y-2">
+                    <p className="text-lg font-bold">Memproses Pembayaran</p>
+                    <Badge variant="outline" className="text-blue-600 border-blue-600">
+                      Sedang Diproses
+                    </Badge>
+                    <p className="text-sm text-muted-foreground">
+                      Mohon tunggu, transaksi Anda sedang diproses...
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {paymentStatus === "success" && (
+                <div className="text-center space-y-4">
+                  <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/20 flex items-center justify-center mx-auto">
+                    <svg className="w-10 h-10 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-lg font-bold text-green-600">Pembayaran Berhasil!</p>
+                    <Badge className="bg-green-600">
+                      Berhasil
+                    </Badge>
+                    <p className="text-sm text-muted-foreground">
+                      Transaksi Anda telah berhasil diproses
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {paymentStatus === "failed" && (
+                <div className="text-center space-y-4">
+                  <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center mx-auto">
+                    <svg className="w-10 h-10 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-lg font-bold text-red-600">Pembayaran Gagal</p>
+                    <Badge variant="destructive">
+                      Gagal
+                    </Badge>
+                    <p className="text-sm text-muted-foreground">
+                      Terjadi kesalahan saat memproses pembayaran
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <div className="flex flex-col w-full gap-2">
-                <Button
-                  onClick={async () => {
-                    setProcessing(true);
-                    try {
-                      const { error } = await supabase.from("transactions").insert({
-                        user_id: user.id,
-                        game_id: game!.id,
-                        product_id: formData.productId,
-                        user_game_id: formData.userGameId,
-                        payment_method: "qris",
-                        total_price: selectedPrice,
-                        status: "success",
-                      });
+                {paymentStatus === "pending" && (
+                  <>
+                    <Button
+                      onClick={async () => {
+                        setProcessing(true);
+                        setPaymentStatus("processing");
+                        try {
+                          const { error } = await supabase.from("transactions").insert({
+                            user_id: user.id,
+                            game_id: game!.id,
+                            product_id: formData.productId,
+                            user_game_id: formData.userGameId,
+                            payment_method: "qris",
+                            total_price: selectedPrice,
+                            status: "success",
+                          });
 
-                      if (error) throw error;
+                          if (error) throw error;
+                          setPaymentStatus("success");
 
-                      // Mark voucher as used if applied
-                      if (selectedVoucher && selectedVoucher !== "none") {
-                        await supabase
-                          .from("user_vouchers")
-                          .update({ is_used: true, used_at: new Date().toISOString() })
-                          .eq("id", selectedVoucher);
-                      }
+                          // Mark voucher as used if applied
+                          if (selectedVoucher && selectedVoucher !== "none") {
+                            await supabase
+                              .from("user_vouchers")
+                              .update({ is_used: true, used_at: new Date().toISOString() })
+                              .eq("id", selectedVoucher);
+                          }
 
-                      toast({
-                        title: "Pembayaran Berhasil!",
-                        description: `Top-up berhasil! Poin loyalty telah ditambahkan ke Vault Anda.`,
-                      });
+                          toast({
+                            title: "Pembayaran Berhasil!",
+                            description: `Top-up berhasil! Poin loyalty telah ditambahkan ke Vault Anda.`,
+                          });
 
+                          setTimeout(() => {
+                            setShowQRDialog(false);
+                            navigate("/vault");
+                          }, 2000);
+                        } catch (error) {
+                          setPaymentStatus("failed");
+                          toast({
+                            title: "Error",
+                            description: "Terjadi kesalahan. Silakan coba lagi.",
+                            variant: "destructive",
+                          });
+                        } finally {
+                          setProcessing(false);
+                        }
+                      }}
+                      disabled={processing}
+                      className="w-full"
+                    >
+                      {processing ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Memproses...
+                        </>
+                      ) : (
+                        "Konfirmasi Pembayaran"
+                      )}
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setShowQRDialog(false);
+                        setPaymentStatus("idle");
+                      }}
+                      variant="outline"
+                      className="w-full"
+                      disabled={processing}
+                    >
+                      Batal
+                    </Button>
+                  </>
+                )}
+
+                {(paymentStatus === "success" || paymentStatus === "failed") && (
+                  <Button
+                    onClick={() => {
                       setShowQRDialog(false);
-                      navigate("/vault");
-                    } catch (error) {
-                      toast({
-                        title: "Error",
-                        description: "Terjadi kesalahan. Silakan coba lagi.",
-                        variant: "destructive",
-                      });
-                    } finally {
-                      setProcessing(false);
-                    }
-                  }}
-                  disabled={processing}
-                  className="w-full"
-                >
-                  {processing ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Memproses...
-                    </>
-                  ) : (
-                    "Konfirmasi Pembayaran"
-                  )}
-                </Button>
-                <Button
-                  onClick={() => setShowQRDialog(false)}
-                  variant="outline"
-                  className="w-full"
-                  disabled={processing}
-                >
-                  Batal
-                </Button>
+                      setPaymentStatus("idle");
+                      if (paymentStatus === "success") {
+                        navigate("/vault");
+                      }
+                    }}
+                    className="w-full"
+                  >
+                    {paymentStatus === "success" ? "Lihat Vault" : "Tutup"}
+                  </Button>
+                )}
               </div>
             </div>
           </DialogContent>
