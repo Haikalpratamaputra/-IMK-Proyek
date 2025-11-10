@@ -41,6 +41,7 @@ interface UserVoucher {
 
 const transactionSchema = z.object({
   userGameId: z.string().min(3, "User ID minimal 3 karakter").max(50),
+  phoneNumber: z.string().regex(/^(\+62|62|0)[0-9]{9,12}$/, "Nomor HP tidak valid"),
   productId: z.string().uuid("Pilih paket terlebih dahulu"),
   paymentMethod: z.string().min(1, "Pilih metode pembayaran"),
 });
@@ -62,6 +63,7 @@ export default function GameDetail() {
   
   const [formData, setFormData] = useState({
     userGameId: "",
+    phoneNumber: "",
     productId: "",
     paymentMethod: "",
   });
@@ -225,15 +227,24 @@ export default function GameDetail() {
     }
   };
 
-  const paymentMethods = [
-    { id: "qris", name: "QRIS", icon: QrCode },
+  const ewalletMethods = [
     { id: "gopay", name: "GoPay", icon: Wallet },
     { id: "ovo", name: "OVO", icon: Wallet },
     { id: "dana", name: "DANA", icon: Wallet },
-    { id: "bank", name: "Transfer Bank", icon: CreditCard },
+    { id: "shopeepay", name: "ShopeePay", icon: Wallet },
+    { id: "linkaja", name: "LinkAja", icon: Wallet },
   ];
 
-  const isFormValid = formData.userGameId && formData.productId && formData.paymentMethod;
+  const bankMethods = [
+    { id: "bca", name: "BCA", icon: CreditCard },
+    { id: "mandiri", name: "Mandiri", icon: CreditCard },
+    { id: "bni", name: "BNI", icon: CreditCard },
+    { id: "bri", name: "BRI", icon: CreditCard },
+    { id: "cimb", name: "CIMB Niaga", icon: CreditCard },
+    { id: "permata", name: "Permata", icon: CreditCard },
+  ];
+
+  const isFormValid = formData.userGameId && formData.phoneNumber && formData.productId && formData.paymentMethod;
 
   if (loading) {
     return (
@@ -262,25 +273,42 @@ export default function GameDetail() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-8">
-          {/* Step 1: User ID */}
+          {/* Step 1: User ID & Phone */}
           <Card className="glass border-border">
             <CardContent className="p-6 space-y-4">
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">
                   1
                 </div>
-                <h2 className="text-xl font-bold">Masukkan User ID</h2>
+                <h2 className="text-xl font-bold">Masukkan Data Anda</h2>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="userId">User ID / Player ID</Label>
-                <Input
-                  id="userId"
-                  placeholder="Masukkan User ID Anda"
-                  value={formData.userGameId}
-                  onChange={(e) => setFormData({ ...formData, userGameId: e.target.value })}
-                  className="bg-card border-border focus:border-primary"
-                  required
-                />
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="userId">User ID / Player ID</Label>
+                  <Input
+                    id="userId"
+                    placeholder="Masukkan User ID Anda"
+                    value={formData.userGameId}
+                    onChange={(e) => setFormData({ ...formData, userGameId: e.target.value })}
+                    className="bg-card border-border focus:border-primary"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Nomor HP / WhatsApp</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    placeholder="08xxxxxxxxxx"
+                    value={formData.phoneNumber}
+                    onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+                    className="bg-card border-border focus:border-primary"
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Digunakan untuk konfirmasi dan notifikasi transaksi
+                  </p>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -375,29 +403,70 @@ export default function GameDetail() {
 
           {/* Step 4: Payment Method */}
           <Card className="glass border-border">
-            <CardContent className="p-6 space-y-4">
+            <CardContent className="p-6 space-y-6">
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">
                   {userVouchers.length > 0 && formData.productId ? "4" : "3"}
                 </div>
-                <h2 className="text-xl font-bold">Pilih Pembayaran</h2>
+                <h2 className="text-xl font-bold">Pilih Metode Pembayaran</h2>
               </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {paymentMethods.map((method) => {
-                  const Icon = method.icon;
-                  return (
-                    <div
-                      key={method.id}
-                      onClick={() => setFormData({ ...formData, paymentMethod: method.id })}
-                      className={`interactive-card ${formData.paymentMethod === method.id ? "selected" : ""}`}
-                    >
-                      <div className="text-center space-y-2">
-                        <Icon className="w-8 h-8 mx-auto text-primary" />
-                        <div className="text-sm font-semibold">{method.name}</div>
+
+              {/* QRIS */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold text-muted-foreground">QRIS</h3>
+                <div
+                  onClick={() => setFormData({ ...formData, paymentMethod: "qris" })}
+                  className={`interactive-card ${formData.paymentMethod === "qris" ? "selected" : ""}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <QrCode className="w-8 h-8 text-primary" />
+                    <div className="text-sm font-semibold">Scan QR Code</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* E-Wallet */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold text-muted-foreground">E-Wallet</h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {ewalletMethods.map((method) => {
+                    const Icon = method.icon;
+                    return (
+                      <div
+                        key={method.id}
+                        onClick={() => setFormData({ ...formData, paymentMethod: method.id })}
+                        className={`interactive-card ${formData.paymentMethod === method.id ? "selected" : ""}`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Icon className="w-6 h-6 text-primary" />
+                          <div className="text-sm font-semibold">{method.name}</div>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Bank Transfer */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold text-muted-foreground">Transfer Bank</h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {bankMethods.map((method) => {
+                    const Icon = method.icon;
+                    return (
+                      <div
+                        key={method.id}
+                        onClick={() => setFormData({ ...formData, paymentMethod: method.id })}
+                        className={`interactive-card ${formData.paymentMethod === method.id ? "selected" : ""}`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Icon className="w-6 h-6 text-primary" />
+                          <div className="text-sm font-semibold">{method.name}</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -418,6 +487,16 @@ export default function GameDetail() {
               <>
                 <QrCode className="mr-2 h-5 w-5" />
                 Tampilkan QR Code - Rp {selectedPrice.toLocaleString("id-ID")}
+              </>
+            ) : ewalletMethods.some(m => m.id === formData.paymentMethod) ? (
+              <>
+                <Wallet className="mr-2 h-5 w-5" />
+                Bayar dengan {ewalletMethods.find(m => m.id === formData.paymentMethod)?.name} - Rp {selectedPrice.toLocaleString("id-ID")}
+              </>
+            ) : bankMethods.some(m => m.id === formData.paymentMethod) ? (
+              <>
+                <CreditCard className="mr-2 h-5 w-5" />
+                Transfer {bankMethods.find(m => m.id === formData.paymentMethod)?.name} - Rp {selectedPrice.toLocaleString("id-ID")}
               </>
             ) : (
               <>
