@@ -6,12 +6,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, CreditCard, Wallet, Ticket, QrCode } from "lucide-react";
+import { Loader2, CreditCard, Wallet, Ticket, QrCode, Info } from "lucide-react";
 import { z } from "zod";
 import { QRCodeSVG } from "qrcode.react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import PaymentInstructionsModal from "@/components/PaymentInstructionsModal";
 
 interface Game {
   id: string;
@@ -60,6 +61,7 @@ export default function GameDetail() {
   const [selectedVoucher, setSelectedVoucher] = useState<string>("");
   const [showQRDialog, setShowQRDialog] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<"idle" | "pending" | "processing" | "success" | "failed">("idle");
+  const [showInstructionsModal, setShowInstructionsModal] = useState(false);
   
   const [formData, setFormData] = useState({
     userGameId: "",
@@ -427,7 +429,20 @@ export default function GameDetail() {
 
               {/* E-Wallet */}
               <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-muted-foreground">E-Wallet</h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-muted-foreground">E-Wallet</h3>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setShowInstructionsModal(true)}
+                    disabled={!formData.paymentMethod || formData.paymentMethod === "qris"}
+                    className="h-7 text-xs"
+                  >
+                    <Info className="w-3 h-3 mr-1" />
+                    Cara Bayar
+                  </Button>
+                </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {ewalletMethods.map((method) => {
                     const Icon = method.icon;
@@ -449,7 +464,20 @@ export default function GameDetail() {
 
               {/* Bank Transfer */}
               <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-muted-foreground">Transfer Bank</h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-muted-foreground">Transfer Bank</h3>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setShowInstructionsModal(true)}
+                    disabled={!formData.paymentMethod || formData.paymentMethod === "qris"}
+                    className="h-7 text-xs"
+                  >
+                    <Info className="w-3 h-3 mr-1" />
+                    Cara Bayar
+                  </Button>
+                </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {bankMethods.map((method) => {
                     const Icon = method.icon;
@@ -686,6 +714,14 @@ export default function GameDetail() {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Payment Instructions Modal */}
+        <PaymentInstructionsModal
+          open={showInstructionsModal}
+          onOpenChange={setShowInstructionsModal}
+          paymentMethod={formData.paymentMethod}
+          amount={selectedPrice}
+        />
       </div>
     </div>
   );

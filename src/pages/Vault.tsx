@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Coins, TrendingUp, Gift, Ticket, CheckCircle, Clock, AlertCircle, XCircle } from "lucide-react";
+import { Loader2, Coins, TrendingUp, Gift, Ticket, CheckCircle, Clock, AlertCircle, XCircle, Filter } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const getStatusConfig = (status: string) => {
   switch (status) {
@@ -86,6 +87,7 @@ export default function Vault() {
   const [vouchers, setVouchers] = useState<Voucher[]>([]);
   const [userVouchers, setUserVouchers] = useState<UserVoucher[]>([]);
   const [redeeming, setRedeeming] = useState<string | null>(null);
+  const [paymentFilter, setPaymentFilter] = useState<string>("all");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -214,6 +216,14 @@ export default function Vault() {
     }
   };
 
+  // Get unique payment methods from transactions
+  const paymentMethods = Array.from(new Set(transactions.map(tx => tx.payment_method)));
+
+  // Filter transactions based on selected payment method
+  const filteredTransactions = paymentFilter === "all" 
+    ? transactions 
+    : transactions.filter(tx => tx.payment_method === paymentFilter);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -335,14 +345,34 @@ export default function Vault() {
 
         <Card className="glass border-border">
           <CardHeader>
-            <CardTitle>Riwayat Transaksi</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle>Riwayat Transaksi</CardTitle>
+              <div className="flex items-center gap-2">
+                <Filter className="w-4 h-4 text-muted-foreground" />
+                <Select value={paymentFilter} onValueChange={setPaymentFilter}>
+                  <SelectTrigger className="w-[180px] bg-card border-border">
+                    <SelectValue placeholder="Filter metode" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Semua Metode</SelectItem>
+                    {paymentMethods.map((method) => (
+                      <SelectItem key={method} value={method}>
+                        {method.toUpperCase()}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
-            {transactions.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">Belum ada transaksi</p>
+            {filteredTransactions.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">
+                {paymentFilter === "all" ? "Belum ada transaksi" : `Tidak ada transaksi dengan metode ${paymentFilter.toUpperCase()}`}
+              </p>
             ) : (
               <div className="space-y-3">
-                {transactions.map((tx) => {
+                {filteredTransactions.map((tx) => {
                   const statusConfig = getStatusConfig(tx.status);
                   const StatusIcon = statusConfig.icon;
                   
