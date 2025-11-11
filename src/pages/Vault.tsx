@@ -5,8 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Coins, TrendingUp, Gift, Ticket, CheckCircle, Clock, AlertCircle, XCircle, Filter } from "lucide-react";
+import { Loader2, Coins, TrendingUp, Gift, Ticket, CheckCircle, Clock, AlertCircle, XCircle, Filter, Eye } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { TransactionDetailModal } from "@/components/TransactionDetailModal";
 
 const getStatusConfig = (status: string) => {
   switch (status) {
@@ -88,6 +89,8 @@ export default function Vault() {
   const [userVouchers, setUserVouchers] = useState<UserVoucher[]>([]);
   const [redeeming, setRedeeming] = useState<string | null>(null);
   const [paymentFilter, setPaymentFilter] = useState<string>("all");
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -403,6 +406,18 @@ export default function Vault() {
                         {tx.status === "success" && (
                           <p className="text-xs text-primary">+{tx.points_earned} poin</p>
                         )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedTransaction(tx);
+                            setIsDetailModalOpen(true);
+                          }}
+                          className="w-full mt-2"
+                        >
+                          <Eye className="w-3 h-3 mr-1" />
+                          Detail
+                        </Button>
                       </div>
                     </div>
                   );
@@ -412,6 +427,12 @@ export default function Vault() {
           </CardContent>
         </Card>
       </div>
+
+      <TransactionDetailModal
+        open={isDetailModalOpen}
+        onOpenChange={setIsDetailModalOpen}
+        transaction={selectedTransaction}
+      />
     </div>
   );
 }
