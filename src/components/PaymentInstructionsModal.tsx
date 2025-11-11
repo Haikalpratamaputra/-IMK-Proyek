@@ -1,7 +1,9 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { CreditCard, Wallet, QrCode, Copy } from "lucide-react";
+import { CreditCard, Wallet, QrCode, Copy, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { usePaymentTimer } from "@/hooks/use-payment-timer";
+import { Progress } from "@/components/ui/progress";
 
 interface PaymentInstructionsModalProps {
   open: boolean;
@@ -17,6 +19,7 @@ export default function PaymentInstructionsModal({
   amount 
 }: PaymentInstructionsModalProps) {
   const { toast } = useToast();
+  const { formattedTime, isExpired, progressPercentage } = usePaymentTimer(paymentMethod, open);
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -296,6 +299,27 @@ export default function PaymentInstructionsModal({
             Ikuti langkah-langkah berikut untuk menyelesaikan pembayaran
           </DialogDescription>
         </DialogHeader>
+
+        {/* Countdown Timer */}
+        <div className={`mx-6 mt-4 p-4 rounded-lg border ${isExpired ? "bg-destructive/10 border-destructive" : "bg-primary/10 border-primary"}`}>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Clock className={`w-4 h-4 ${isExpired ? "text-destructive" : "text-primary"}`} />
+              <span className="text-sm font-semibold">
+                {isExpired ? "Waktu Pembayaran Habis" : "Batas Waktu Pembayaran"}
+              </span>
+            </div>
+            <span className={`text-lg font-bold font-mono ${isExpired ? "text-destructive" : "text-primary"}`}>
+              {formattedTime}
+            </span>
+          </div>
+          <Progress value={isExpired ? 0 : progressPercentage} className="h-2" />
+          {isExpired && (
+            <p className="text-xs text-destructive mt-2">
+              Silakan buat transaksi baru untuk melanjutkan pembayaran
+            </p>
+          )}
+        </div>
 
         <div className="space-y-4 py-4">
           {/* Account/Merchant Info */}

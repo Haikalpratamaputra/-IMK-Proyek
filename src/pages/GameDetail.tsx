@@ -6,13 +6,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, CreditCard, Wallet, Ticket, QrCode, Info } from "lucide-react";
+import { Loader2, CreditCard, Wallet, Ticket, QrCode, Info, Clock } from "lucide-react";
 import { z } from "zod";
 import { QRCodeSVG } from "qrcode.react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import PaymentInstructionsModal from "@/components/PaymentInstructionsModal";
+import { usePaymentTimer } from "@/hooks/use-payment-timer";
+import { Progress } from "@/components/ui/progress";
 
 interface Game {
   id: string;
@@ -69,6 +71,11 @@ export default function GameDetail() {
     productId: "",
     paymentMethod: "",
   });
+  
+  const { formattedTime, isExpired, progressPercentage, reset: resetTimer } = usePaymentTimer(
+    formData.paymentMethod, 
+    showQRDialog && paymentStatus === "pending"
+  );
   
   const [selectedPrice, setSelectedPrice] = useState(0);
   const [originalPrice, setOriginalPrice] = useState(0);
@@ -176,6 +183,7 @@ export default function GameDetail() {
       if (validated.paymentMethod === "qris") {
         setPaymentStatus("pending");
         setShowQRDialog(true);
+        resetTimer();
         return;
       }
       
@@ -546,25 +554,57 @@ export default function GameDetail() {
             <div className="flex flex-col items-center justify-center space-y-4 p-6">
               {paymentStatus === "pending" && (
                 <>
-                  <div className="bg-white p-4 rounded-lg">
-                    <QRCodeSVG
-                      value={`PAYMENT:${game?.id}:${formData.productId}:${selectedPrice}`}
-                      size={256}
-                      level="H"
-                      includeMargin={true}
-                    />
+                  {/* Countdown Timer */}
+                  <div className={`w-full p-4 rounded-lg border ${isExpired ? "bg-destructive/10 border-destructive" : "bg-primary/10 border-primary"}`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Clock className={`w-4 h-4 ${isExpired ? "text-destructive" : "text-primary"}`} />
+                        <span className="text-sm font-semibold">
+                          {isExpired ? "Kode QR Kedaluwarsa" : "Waktu Tersisa"}
+                        </span>
+                      </div>
+                      <span className={`text-lg font-bold font-mono ${isExpired ? "text-destructive" : "text-primary"}`}>
+                        {formattedTime}
+                      </span>
+                    </div>
+                    <Progress value={isExpired ? 0 : progressPercentage} className="h-2" />
                   </div>
-                  <div className="text-center space-y-2">
-                    <p className="text-lg font-bold">
-                      Total: Rp {selectedPrice.toLocaleString("id-ID")}
-                    </p>
-                    <Badge variant="outline" className="text-yellow-600 border-yellow-600">
-                      Menunggu Pembayaran
-                    </Badge>
-                    <p className="text-sm text-muted-foreground">
-                      Scan QR code, lalu klik tombol konfirmasi setelah pembayaran berhasil
-                    </p>
-                  </div>
+
+                  {!isExpired ? (
+                    <>
+                      <div className="bg-white p-4 rounded-lg">
+                        <QRCodeSVG
+                          value={`PAYMENT:${game?.id}:${formData.productId}:${selectedPrice}`}
+                          size={256}
+                          level="H"
+                          includeMargin={true}
+                        />
+                      </div>
+                      <div className="text-center space-y-2">
+                        <p className="text-lg font-bold">
+                          Total: Rp {selectedPrice.toLocaleString("id-ID")}
+                        </p>
+                        <Badge variant="outline" className="text-yellow-600 border-yellow-600">
+                          Menunggu Pembayaran
+                        </Badge>
+                        <p className="text-sm text-muted-foreground">
+                          Scan QR code, lalu klik tombol konfirmasi setelah pembayaran berhasil
+                        </p>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-center space-y-4 py-8">
+                      <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto">
+                        <Clock className="w-10 h-10 text-destructive" />
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-lg font-bold text-destructive">Waktu Pembayaran Habis</p>
+                        <p className="text-sm text-muted-foreground">
+                          Kode QR telah kedaluwarsa. Silakan buat transaksi baru.
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
 
@@ -622,7 +662,7 @@ export default function GameDetail() {
               )}
 
               <div className="flex flex-col w-full gap-2">
-                {paymentStatus === "pending" && (
+                {paymentStatus === "pending" && !isExpired && (
                   <>
                     <Button
                       onClick={async () => {
@@ -694,6 +734,20 @@ export default function GameDetail() {
                       Batal
                     </Button>
                   </>
+                )}
+
+                {(paymentStatus === "pending" && isExpired) && (
+                  <Button
+                    onClick={() => {
+                      setShowQRDialog(false);
+                      setPaymentStatus("idle");
+                      resetTimer();
+                    }}
+                    variant="destructive"
+                    className="w-full"
+                  >
+                    Tutup & Coba Lagi
+                  </Button>
                 )}
 
                 {(paymentStatus === "success" || paymentStatus === "failed") && (
