@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
-import { Zap, Shield, Gift, ArrowRight } from "lucide-react";
+import { Zap, Shield, Gift, ArrowRight, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 interface Game {
   id: string;
@@ -16,6 +17,7 @@ interface Game {
 export default function Home() {
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     const fetchGames = async () => {
@@ -33,6 +35,10 @@ export default function Home() {
 
     fetchGames();
   }, []);
+
+  const filteredGames = games.filter((game) =>
+    game.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="min-h-screen">
@@ -102,9 +108,23 @@ export default function Home() {
       {/* Popular Games Section */}
       <section className="py-16 px-4 bg-gradient-to-b from-transparent to-card/50">
         <div className="container mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-3">Game Populer</h2>
-            <p className="text-muted-foreground">Pilih game favoritmu dan mulai top-up sekarang</p>
+          <div className="text-center mb-12 space-y-6">
+            <div>
+              <h2 className="text-3xl md:text-4xl font-bold mb-3">Game Populer</h2>
+              <p className="text-muted-foreground">Pilih game favoritmu dan mulai top-up sekarang</p>
+            </div>
+            
+            {/* Search Bar */}
+            <div className="max-w-md mx-auto relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Cari game..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 bg-card border-border focus:border-primary"
+              />
+            </div>
           </div>
 
           {loading ? (
@@ -120,9 +140,13 @@ export default function Home() {
                 </Card>
               ))}
             </div>
+          ) : filteredGames.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground text-lg">Game tidak ditemukan</p>
+            </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-              {games.map((game) => (
+              {filteredGames.map((game) => (
                 <Link key={game.id} to={`/game/${game.slug}`}>
                   <Card className="interactive-card group overflow-hidden">
                     <CardContent className="p-0">
