@@ -12,12 +12,14 @@ interface Game {
   slug: string;
   thumbnail_url: string;
   description: string;
+  category: string;
 }
 
 export default function Home() {
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("All");
 
   useEffect(() => {
     const fetchGames = async () => {
@@ -36,9 +38,13 @@ export default function Home() {
     fetchGames();
   }, []);
 
-  const filteredGames = games.filter((game) =>
-    game.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const categories = ["All", "MOBA", "Battle Royale", "RPG", "Other"];
+
+  const filteredGames = games.filter((game) => {
+    const matchesSearch = game.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = selectedCategory === "All" || game.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
 
   return (
     <div className="min-h-screen">
@@ -124,6 +130,21 @@ export default function Home() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 bg-card border-border focus:border-primary"
               />
+            </div>
+
+            {/* Category Filter */}
+            <div className="flex flex-wrap gap-2 justify-center">
+              {categories.map((category) => (
+                <Button
+                  key={category}
+                  variant={selectedCategory === category ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSelectedCategory(category)}
+                  className={selectedCategory === category ? "bg-primary text-primary-foreground" : "border-border hover:border-primary"}
+                >
+                  {category}
+                </Button>
+              ))}
             </div>
           </div>
 
